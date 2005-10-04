@@ -1,0 +1,8 @@
+Revision history for Perl extension Number::Bytes::Human.
+
+0.02 Tue Oct  4 2005
+        - 0.02 release follows, because META.yml and Changes
+          were forgotten
+
+0.01 Tue Oct  4 2005
+        - 0.01 release reaches CPAN

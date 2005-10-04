@@ -1,0 +1,19 @@
+---
+# http://module-build.sourceforge.net/META-spec-v1.2.html
+name:         Number-Bytes-Human
+version:      0.02
+version_from: Human.pm
+author:
+  - Adriano Ferreira <ferreira@cpan.org>
+license: perl
+requires:
+    POSIX:                         0
+    Carp:                          0
+    Test::More:                    0
+recommends:
+    Test::Pod:                     1.18
+no_index: ~
+installdirs: site
+
+distribution_type: module
+generated_by: me
