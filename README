@@ -1,0 +1,8 @@
+Number::Bytes::Human 0.01
+
+* we need a real README
+* finish docs
+* include memoizing
+* write a benchmark: unmemoized vs. memoized vs. object
+* (maybe) include POD coverage test 
+
