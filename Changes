@@ -1,5 +1,11 @@
 Revision history for Perl extension Number::Bytes::Human.
 
+0.03 Tue Oct  4 2005
+        - some idle changes, like fixing 'si' option behavior
+        - added new test "t/06si.t"
+        - the (yet) undocumented option 'unit'
+        - a test script "t/07unit.t"
+
 0.02 Tue Oct  4 2005
         - 0.02 release follows, because META.yml and Changes
           were forgotten

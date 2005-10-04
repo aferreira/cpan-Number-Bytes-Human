@@ -4,7 +4,7 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -45,9 +45,11 @@ sub _round_function {
 #
 #   suffixes => \@
 #   si => 1
+#   unit => 'B' | 'bps'
 #
 #   zero => '0' (default) | '-' | '0%S' | undef
 #
+#   
 #   supress_point_zero | no_point_zero =>
 #   b_to_i => 1
 #   to_s => \&
@@ -156,6 +158,10 @@ sub _parse_args {
   } elsif ($args{si}) {
     my $suff = ($options{BLOCK}==1024) ? 'iB' : 'B';
     $options{SUFFIXES} = [ map { "$_$suff" } @DEFAULT_SUFFIXES ];
+    $options{SUFFIXES}[1] = 'kB' if $options{BLOCK}==1000; # 'kB' instead of 'KB' for 1000 B
+  } elsif (defined $args{unit}) {
+    my $suff = $args{unit};
+    $options{SUFFIXES} = [ map  { "$_$suff" } @DEFAULT_SUFFIXES ];
   }
 
 # zero => undef | string
@@ -333,6 +339,33 @@ I have found this link to be quite useful:
 
   http://www.t1shopper.com/tools/calculate/
 
+If you feel like a hard-drive manufacturer, you can start
+counting bytes by powers of 1000 (instead of the generous 1024).
+Just use C<< bs => 1000 >>.
+
+If you feel like a purist academic, you can force the use of
+metric prefixes
+according to the Dec 1998 standard by the IEC. Never mind the units for base 1000
+are C<( 'B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' )> and,
+even worse, the ones for base 1024 are
+C<( 'iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB' )>
+with the horrible names: bytes, kibibytes, mebibytes, etc.
+All you have to do is to use C<< si => 1 >>. Ain't that beautiful
+the SI system? Read about it:
+
+  http://physics.nist.gov/cuu/Units/binary.html
+
+You can try a pure Perl C<"ls -lh">-inspired command with the one-liner, er, two-liner:
+
+  $ perl -MNumber::Bytes::Human=format_bytes \
+         -e 'printf "%5s %s\n", format_bytes(-s), $_ for @ARGV' *
+
+Why to write such a module? Because if people can write such things
+in C, it can be written much easier in Perl and then reused,
+refactored, abused. And then, when it is much improved, some
+brave soul can port it back to C (if only for the warm feeling
+of painful programming).
+
 =head2 OPTIONS
 
 =over 4 
@@ -362,8 +395,8 @@ The string may contain '%S' in which case the suffix for byte is used.
 
 =item ROUND
 
-  round_style => 'ceil' | 'floor'
   round_function => $coderef
+  round_style => 'ceil' | 'floor'
 
 =item TO_S
 
@@ -402,7 +435,7 @@ for $seed == undef
 
 =head2 EXPORT
 
-It is alright to import C<format_bytes>, but nothingis exported by default.
+It is alright to import C<format_bytes>, but nothing is exported by default.
 
 =head1 DIAGNOSTICS
 
