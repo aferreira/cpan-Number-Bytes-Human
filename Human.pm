@@ -4,7 +4,7 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -16,7 +16,22 @@ use Carp qw(croak carp);
 #my $DEFAULT_BLOCK = 1024;
 #my $DEFAULT_ZERO = '0';
 #my $DEFAULT_ROUND_STYLE = 'ceil';
-my @DEFAULT_SUFFIXES = ('', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y');
+my %DEFAULT_SUFFIXES = (
+  1024 => ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+  1000 => ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
+  si_1024 => ['iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'],
+  si_1000 => ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+);
+my @DEFAULT_PREFIXES = @{$DEFAULT_SUFFIXES{1024}};
+
+sub _default_suffixes {
+  my $set = shift || 1024;
+  if (exists $DEFAULT_SUFFIXES{$set}) {
+    return @{$DEFAULT_SUFFIXES{$set}} if wantarray;
+    return [ @{$DEFAULT_SUFFIXES{$set}} ];
+  }
+  croak "unknown suffix set '$set'";
+}
 
 my %ROUND_FUNCTIONS = (
   ceil => \&POSIX::ceil,
@@ -43,9 +58,9 @@ sub _round_function {
 #   round_function => \&
 #   round_style => 'ceiling', 'round', 'floor', 'trunc'
 #
-#   suffixes => \@
+#   suffixes => 1024 | 1000 | si_1024 | si_1000 | \@
 #   si => 1
-#   unit => 'B' | 'bps'
+#   unit => string (eg., 'B' | 'bps' | 'b')
 #
 #   zero => '0' (default) | '-' | '0%S' | undef
 #
@@ -93,7 +108,7 @@ sub _parse_args {
     $options{ROUND_STYLE} = 'ceil';
     $options{ROUND_FUNCTION} = _round_function($options{ROUND_STYLE});
     $options{ZERO} = '0';
-    $options{SUFFIXES} = [ @DEFAULT_SUFFIXES ];
+    #$options{SUFFIXES} = # deferred to the last minute when we know BLOCK, seek [**]
   } 
   # else { %options = %$seed } # this is set if @_!=0, down below
 
@@ -150,18 +165,21 @@ sub _parse_args {
     $options{ROUND_STYLE} = $args{round_style};
   }
 
+# suffixes => 1024 | 1000 | si_1024 | si_1000 | \@
   if ($args{suffixes}) {
-    unless (ref $args{suffixes} eq 'ARRAY') {
-      croak "suffixes ($args{suffixes}) should be an array ref";
+    if (ref $args{suffixes} eq 'ARRAY') {
+      $options{SUFFIXES} = $args{suffixes};
+    } elsif ($args{suffixes} =~ /^(si_)?(1000|1024)$/) {
+      $options{SUFFIXES} = _default_suffixes($args{suffixes});
+    } else {
+      croak "suffixes ($args{suffixes}) should be 1024, 1000, si_1024, si_1000 or an array ref";
     }
-    $options{SUFFIXES} = $args{suffixes};
   } elsif ($args{si}) {
-    my $suff = ($options{BLOCK}==1024) ? 'iB' : 'B';
-    $options{SUFFIXES} = [ map { "$_$suff" } @DEFAULT_SUFFIXES ];
-    $options{SUFFIXES}[1] = 'kB' if $options{BLOCK}==1000; # 'kB' instead of 'KB' for 1000 B
+    my $set = ($options{BLOCK}==1024) ? 'si_1024' : 'si_1000';
+    $options{SUFFIXES} = _default_suffixes($set);
   } elsif (defined $args{unit}) {
     my $suff = $args{unit};
-    $options{SUFFIXES} = [ map  { "$_$suff" } @DEFAULT_SUFFIXES ];
+    $options{SUFFIXES} = [ map  { "$_$suff" } @DEFAULT_PREFIXES ];
   }
 
 # zero => undef | string
@@ -197,8 +215,9 @@ sub _format_bytes {
   return $options{ZERO} if ($bytes==0 && defined $options{ZERO});
 
   my $block = $options{BLOCK};
-  #my $precision = 2;
-  my @suffixes = @{$options{SUFFIXES}};
+
+  # if a suffix set was not specified, pick a default [**]
+  my @suffixes = $options{SUFFIXES} ? @{$options{SUFFIXES}} : _default_suffixes($block);
 
   # WHAT ABOUT NEGATIVE NUMBERS: -1K ?
   my $sign = '';
@@ -323,6 +342,13 @@ CHANGES VERY SOON (THANKS, GOD!).
 
 This module provides a formatter which turns byte counts
 to usual readable format, like '2.0K', '3.1G', '100B'.
+It was inspired in the C<-h> option of Unix
+utilities like C<du>, C<df> and C<ls> for "human-readable" output.
+
+    "Human-readable" output.  Use unit suffixes: Byte, Kilobyte,
+    Megabyte, Gigabyte, Terabyte and Petabyte in order to reduce the
+    number of digits to four or fewer using base 2 for sizes.
+    (FreeBSD man page of C<df>: http://www.freebsd.org/cgi/man.cgi?query=df)
 
   byte      B
   kilobyte  K = 2**10 B = 1024 B
@@ -346,9 +372,9 @@ Just use C<< bs => 1000 >>.
 If you feel like a purist academic, you can force the use of
 metric prefixes
 according to the Dec 1998 standard by the IEC. Never mind the units for base 1000
-are C<( 'B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' )> and,
+are C<('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')> and,
 even worse, the ones for base 1024 are
-C<( 'iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB' )>
+C<('iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')>
 with the horrible names: bytes, kibibytes, mebibytes, etc.
 All you have to do is to use C<< si => 1 >>. Ain't that beautiful
 the SI system? Read about it:
@@ -379,6 +405,15 @@ of painful programming).
 The base to be used: 1024 (default) or 1000.
 
 Any other value throws an exception.
+
+=item SUFFIXES
+
+  suffixes => 1000 | 1024 | si_1000 | si_1024 | $arrayref
+
+By default, the used suffixes stand for '', 'K', 'M', ... 
+for base 1024 and '', 'k', 'M', ... for base 1000
+(which are indeed the usual metric prefixes with implied unit
+as bytes, 'B').
 
 =item ZERO
 
@@ -445,10 +480,20 @@ It is alright to import C<format_bytes>, but nothing is exported by default.
 
   "round function ($args{round_function}) should be a code ref";
 
-  "suffixes ($args{suffixes}) should be an array ref";
+  "suffixes ($args{suffixes}) should be 1000, 1024 or an array ref";
 
   "negative numbers are not allowed" (??)
 
+=head1 TO DO
+
+A function C<parse_bytes>
+
+  parse_bytes($str, $options)
+
+which transforms '1k' to 1000, '1K' to 1024, '1MB' to 1E6,
+'1M' to 1024*1024, etc. (like gnu du).
+
+  $str =~ /^\s*(\d*\.?\d*)\s*(\S+)/ # $num $suffix
 
 =head1 SEE ALSO
 

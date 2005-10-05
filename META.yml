@@ -1,7 +1,7 @@
 ---
 # http://module-build.sourceforge.net/META-spec-v1.2.html
 name:         Number-Bytes-Human
-version:      0.03
+version:      0.04
 version_from: Human.pm
 author:
   - Adriano Ferreira <ferreira@cpan.org>
@@ -12,6 +12,7 @@ requires:
     Test::More:                    0
 recommends:
     Test::Pod:                     1.18
+    #bignum:                        0
 no_index: ~
 installdirs: site
 
