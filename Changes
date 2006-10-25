@@ -1,5 +1,9 @@
 Revision history for Perl extension Number::Bytes::Human.
 
+0.05 Tue Oct 25 2006
+         - nothing new here
+         - added taint checking to tests "#!perl -T\n"
+
 0.04 Tue Oct  5 2005
          - now default suffix for kilobytes (base 1000) is 'k', not 'K'
          - now 'suffixes' option support 1024, 1000, si_1024, and si_1000
