@@ -6,7 +6,7 @@ use_ok('Number::Bytes::Human');
 
 # testing the OO way
 
-my $human = new Number::Bytes::Human(bs => 1000, si => 1);
+my $human = Number::Bytes::Human->new(bs => 1000, si => 1);
 isa_ok($human, 'Number::Bytes::Human');
 
 is($human->format(1E7), '10MB');

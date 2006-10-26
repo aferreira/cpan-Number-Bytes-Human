@@ -13,6 +13,7 @@ t/04base1000.t
 t/05zero.t
 t/06si.t
 t/07unit.t
+t/08base1M.t
 t/10parse_args.t
 t/20oo.t
 t/90pod.t

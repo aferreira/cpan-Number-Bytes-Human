@@ -4,7 +4,7 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -19,7 +19,8 @@ use Carp qw(croak carp);
 my %DEFAULT_SUFFIXES = (
   1024 => ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
   1000 => ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'],
-  si_1024 => ['iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'],
+  1024000 => ['', 'M', 'T', 'E', 'Y'],
+  si_1024 => ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'],
   si_1000 => ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
 );
 my @DEFAULT_PREFIXES = @{$DEFAULT_SUFFIXES{1024}};
@@ -58,7 +59,7 @@ sub _round_function {
 #   round_function => \&
 #   round_style => 'ceiling', 'round', 'floor', 'trunc'
 #
-#   suffixes => 1024 | 1000 | si_1024 | si_1000 | \@
+#   suffixes => 1024 | 1000 | si_1024 | si_1000 | 1024000 | \@
 #   si => 1
 #   unit => string (eg., 'B' | 'bps' | 'b')
 #
@@ -135,8 +136,8 @@ sub _parse_args {
                 $args{block_size} ||
                 $args{base} ||
                 $args{bs};
-    unless ($block==1000 || $block==1024) {
-      croak "invalid base: $block (should be 1024 or 1000)";
+    unless ($block==1000 || $block==1024 || $block==1_024_000) {
+      croak "invalid base: $block (should be 1024, 1000 or 1024000)";
     }
     $options{BLOCK} = $block;
     
@@ -165,14 +166,14 @@ sub _parse_args {
     $options{ROUND_STYLE} = $args{round_style};
   }
 
-# suffixes => 1024 | 1000 | si_1024 | si_1000 | \@
+# suffixes => 1024 | 1000 | si_1024 | si_1000 | 1024000 | \@
   if ($args{suffixes}) {
     if (ref $args{suffixes} eq 'ARRAY') {
       $options{SUFFIXES} = $args{suffixes};
     } elsif ($args{suffixes} =~ /^(si_)?(1000|1024)$/) {
       $options{SUFFIXES} = _default_suffixes($args{suffixes});
     } else {
-      croak "suffixes ($args{suffixes}) should be 1024, 1000, si_1024, si_1000 or an array ref";
+      croak "suffixes ($args{suffixes}) should be 1024, 1000, si_1024, si_1000, 1024000 or an array ref";
     }
   } elsif ($args{si}) {
     my $set = ($options{BLOCK}==1024) ? 'si_1024' : 'si_1000';
@@ -330,7 +331,7 @@ Number::Bytes::Human - Convert byte count to human readable format
   $size = format_bytes(1E9, bs => 1000); # '1.0G'
 
   # the OO way
-  $human = new Number::Bytes::Human(bs => 1000, si => 1);
+  $human = Number::Bytes::Human->new(bs => 1000, si => 1);
   $size = $human->format(1E7); # '10MB'
   $human->set_options(zero => '-');
   $size = $human->format(0); # '-'
@@ -369,12 +370,16 @@ If you feel like a hard-drive manufacturer, you can start
 counting bytes by powers of 1000 (instead of the generous 1024).
 Just use C<< bs => 1000 >>.
 
+But if you are a floppy disk manufacturer and want to start
+counting in units of 1024000 (for your "1.44 MB" disks)?
+Then use C<< bs => 1_024_000 >>.
+
 If you feel like a purist academic, you can force the use of
 metric prefixes
 according to the Dec 1998 standard by the IEC. Never mind the units for base 1000
 are C<('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')> and,
 even worse, the ones for base 1024 are
-C<('iB', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')>
+C<('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')>
 with the horrible names: bytes, kibibytes, mebibytes, etc.
 All you have to do is to use C<< si => 1 >>. Ain't that beautiful
 the SI system? Read about it:
@@ -398,22 +403,23 @@ of painful programming).
 
 =item BASE
 
-  block | base | block_size | bs => 1000 | 1024
+  block | base | block_size | bs => 1000 | 1024 | 1024000
   base_1024 | block_1024 | 1024 => 1
   base_1000 | block_1000 | 1000 => 1
 
-The base to be used: 1024 (default) or 1000.
+The base to be used: 1024 (default), 1000 or 1024000.
 
 Any other value throws an exception.
 
 =item SUFFIXES
 
-  suffixes => 1000 | 1024 | si_1000 | si_1024 | $arrayref
+  suffixes => 1000 | 1024 | 1024000 | si_1000 | si_1024 | $arrayref 
 
 By default, the used suffixes stand for '', 'K', 'M', ... 
 for base 1024 and '', 'k', 'M', ... for base 1000
 (which are indeed the usual metric prefixes with implied unit
-as bytes, 'B').
+as bytes, 'B'). For the weird 1024000 base, suffixes are
+'', 'M', 'T', etc.
 
 =item ZERO
 
@@ -459,13 +465,13 @@ if you have to format lots of numbers
 
 vs.
 
-  my $human = new Number::Format::Bytes(@args);
+  my $human = Number::Format::Bytes->new(@args);
   for (@sizes) {
     my $fmt_size = $human->format($_);
     ...
   }
 
-MAKE IT JUST A MATTER OF STYLE: memoize _parse_args()
+[TODO] MAKE IT JUST A MATTER OF STYLE: memoize _parse_args()
 for $seed == undef
 
 =head2 EXPORT
@@ -476,11 +482,11 @@ It is alright to import C<format_bytes>, but nothing is exported by default.
 
   "unknown round style '$style'";
 
-  "invalid base: $block (should be 1024 or 1000)";
+  "invalid base: $block (should be 1024, 1000 or 1024000)";
 
   "round function ($args{round_function}) should be a code ref";
 
-  "suffixes ($args{suffixes}) should be 1000, 1024 or an array ref";
+  "suffixes ($args{suffixes}) should be 1000, 1024, 1024000 or an array ref";
 
   "negative numbers are not allowed" (??)
 
@@ -511,7 +517,7 @@ Adriano R. Ferreira, E<lt>ferreira@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005 by Adriano R. Ferreira
+Copyright (C) 2005-2006 by Adriano R. Ferreira
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

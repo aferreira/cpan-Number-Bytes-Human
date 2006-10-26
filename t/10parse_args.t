@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 27;
+use Test::More tests => 28;
 
 # script for testing the internal sub &_parse_args()
 
@@ -52,6 +52,10 @@ is_deeply(
 is_deeply(
   _parse_args({}, { 1000 => 1 }),
   { BLOCK => 1000 });
+
+is_deeply(
+  _parse_args({}, { bs => 1024000 }),
+  { BLOCK => 1_024_000 });
 
 # block + block_size
 is_deeply(
@@ -118,7 +122,7 @@ is_deeply(
 
 is_deeply(
   _parse_args({}, { si => 1, bs => 1024 }),
-  { BLOCK => 1024, SUFFIXES => [ qw(iB KiB MiB GiB TiB PiB EiB ZiB YiB) ] }, "si => 1, bs => 1024 works");
+  { BLOCK => 1024, SUFFIXES => [ qw(B KiB MiB GiB TiB PiB EiB ZiB YiB) ] }, "si => 1, bs => 1024 works");
 
 ## option ZERO
 
