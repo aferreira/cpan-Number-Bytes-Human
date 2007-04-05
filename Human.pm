@@ -4,7 +4,7 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -339,17 +339,18 @@ Number::Bytes::Human - Convert byte count to human readable format
 =head1 DESCRIPTION
 
 THIS IS ALPHA SOFTWARE: THE DOCUMENTATION AND THE CODE WILL SUFFER
-CHANGES VERY SOON (THANKS, GOD!).
+CHANGES SOME DAY (THANKS, GOD!).
 
 This module provides a formatter which turns byte counts
 to usual readable format, like '2.0K', '3.1G', '100B'.
 It was inspired in the C<-h> option of Unix
 utilities like C<du>, C<df> and C<ls> for "human-readable" output.
 
-    "Human-readable" output.  Use unit suffixes: Byte, Kilobyte,
-    Megabyte, Gigabyte, Terabyte and Petabyte in order to reduce the
-    number of digits to four or fewer using base 2 for sizes.
-    (FreeBSD man page of C<df>: http://www.freebsd.org/cgi/man.cgi?query=df)
+From the FreeBSD man page of C<df>: http://www.freebsd.org/cgi/man.cgi?query=df
+
+  "Human-readable" output.  Use unit suffixes: Byte, Kilobyte,
+  Megabyte, Gigabyte, Terabyte and Petabyte in order to reduce the
+  number of digits to four or fewer using base 2 for sizes.
 
   byte      B
   kilobyte  K = 2**10 B = 1024 B
@@ -396,6 +397,78 @@ in C, it can be written much easier in Perl and then reused,
 refactored, abused. And then, when it is much improved, some
 brave soul can port it back to C (if only for the warm feeling
 of painful programming).
+
+=head2 OBJECTS
+
+An alternative to the functional style of this module
+is the OO fashion. This is useful for avoiding the 
+unnecessary parsing of the arguments over and over
+if you have to format lots of numbers 
+
+
+  for (@sizes) {
+    my $fmt_size = format_bytes($_, @args);
+    ...
+  }
+
+versus
+
+  my $human = Number::Format::Bytes->new(@args);
+  for (@sizes) {
+    my $fmt_size = $human->format($_);
+    ...
+  }
+
+for TODO
+[TODO] MAKE IT JUST A MATTER OF STYLE: memoize _parse_args()
+$seed == undef
+
+=head2 FUNCTIONS
+
+=over 4
+
+=item B<format_bytes>
+
+  $h_size = format_bytes($size, @options);
+
+Turns a byte count (like 1230) to a readable format like '1.3K'.
+You have a bunch of options to play with. See the section
+L</"OPTIONS"> to know the details.
+
+=back
+
+=head2 METHODS
+
+=over 4
+
+=item B<new>
+
+  $h = Number::Bytes::Human->new(@options);
+
+The constructor. For details on the arguments, see the section
+L</"OPTIONS">.
+
+=item B<format>
+
+  $h_size = $h->format($size);
+
+Turns a byte count (like 1230) to a readable format like '1.3K'.
+The statements 
+
+  $h = Number::Bytes::Human->new(@options);
+  $h_size = $h->format($size);
+
+are equivalent to C<$h_size = format_bytes($size, @options)>,
+with only one pass for the option arguments.
+
+=item B<set_options>
+
+  $h->set_options(@options);
+
+To alter the options of a C<Number::Bytes::Human> object.
+See L</"OPTIONS">.
+
+=back
 
 =head2 OPTIONS
 
@@ -450,30 +523,6 @@ when the number is large than C<$base**(@suffixes+1)>.
 
 =back
 
-=head2 OBJECTS
-
-An alternative to the functional style of this module
-is the OO fashion. This is useful for avoiding the 
-unnecessary parsing of the arguments over and over
-if you have to format lots of numbers 
-
-
-  for (@sizes) {
-    my $fmt_size = format_bytes($_, @args);
-    ...
-  }
-
-vs.
-
-  my $human = Number::Format::Bytes->new(@args);
-  for (@sizes) {
-    my $fmt_size = $human->format($_);
-    ...
-  }
-
-[TODO] MAKE IT JUST A MATTER OF STYLE: memoize _parse_args()
-for $seed == undef
-
 =head2 EXPORT
 
 It is alright to import C<format_bytes>, but nothing is exported by default.
@@ -509,7 +558,9 @@ The C<_convert()> solution by COG in Filesys::DiskUsage.
 
 =head1 BUGS
 
-Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Bytes-Human>.
+Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Bytes-Human>
+or L<mailto://bug-Number-Bytes-Human@rt.cpan.org>. I will not be able to close the bug
+as BestPractical ignore my claims that I cannot log in, but I will answer anyway.
 
 =head1 AUTHOR
 
@@ -517,7 +568,7 @@ Adriano R. Ferreira, E<lt>ferreira@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2006 by Adriano R. Ferreira
+Copyright (C) 2005-2007 by Adriano R. Ferreira
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

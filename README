@@ -1,10 +1,10 @@
-Number::Bytes::Human 0.06
+Number::Bytes::Human 0.07
 
 * we need a real README
 * finish docs
+* write parse_bytes
 * include memoizing
 * write a benchmark: unmemoized vs. memoized vs. object
-* (maybe) include POD coverage test 
 
 What I update when releasing 
 * Human.pm $VERSION

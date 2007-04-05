@@ -1,20 +1,22 @@
----
-# http://module-build.sourceforge.net/META-spec-v1.2.html
-name:         Number-Bytes-Human
-version:      0.06
-version_from: Human.pm
-author:
-  - Adriano Ferreira <ferreira@cpan.org>
-license: perl
-requires:
-    POSIX:                         0
+--- #YAML:1.0
+name:                Number-Bytes-Human
+version:             0.07
+abstract:            Convert byte count to human readable format
+license:             perl
+generated_by:        ExtUtils::MakeMaker version 6.32
+distribution_type:   module
+requires:     
     Carp:                          0
+    POSIX:                         0
     Test::More:                    0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - A. R. Ferreira <ferreira@cpan.org>
+
 recommends:
     Test::Pod:                     1.18
     #bignum:                        0
 no_index: ~
 installdirs: site
-
-distribution_type: module
-generated_by: me
