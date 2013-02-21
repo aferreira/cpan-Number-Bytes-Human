@@ -10,5 +10,4 @@ is(format_bytes(0, zero => '*'), '*', "0 turns to '*'");
 is(format_bytes(0, zero => '0%S', suffixes => [ 'B' ]), '0B', "0 turns to '0B'");
 
 # zero => undef
-is(format_bytes(0, zero => undef, suffixes => [ ' B' ]), '0 B', "0 turns to '0 B'");
-
+is(format_bytes(0, zero => undef, suffixes => [ ' B' ]), '0.0 B', "0 turns to '0.0 B'");   #'0 B', wrong with the default being precision 1 with cutoff digits 1 and zero being undef

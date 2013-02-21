@@ -6,8 +6,8 @@ use_ok('Number::Bytes::Human', 'format_bytes');
 
 our @TESTS = (
   '0' => '0',
-  '1' => '1',
-  '-1' => '-1',
+  '1' => '1.0',   #'1', mafoo - with the default being precision 1 with cutoff digits 1
+  '-1' => '-1.0', #'-1', mafoo - with the default being precision 1 with cutoff digits 1
   '10' => '10',
   '100' => '100',
   '400' => '400',
@@ -28,4 +28,3 @@ while (my ($exp, $expected) = splice @TESTS, 0, 2) {
   $num = eval $exp;
   is(format_bytes($num, bs => 1000), $expected, "$exp is $expected");
 }
-

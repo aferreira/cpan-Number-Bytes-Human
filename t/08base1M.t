@@ -6,8 +6,8 @@ use_ok('Number::Bytes::Human', 'format_bytes');
 
 our @TESTS = (
   '0' => '0',
-  '1' => '1',
-  '-1' => '-1',
+  '1' => '1.0',   #'1', wrong with the default being precision 1 with cutoff digits 1
+  '-1' => '-1.0', #'-1', wrong with the default being precision 1 with cutoff digits 1
   '10' => '10',
   '100' => '100',
   '400' => '400',
@@ -16,7 +16,7 @@ our @TESTS = (
   '1_000_000' => '1000000',
   '1_024_000' => '1.0M',
   '1_024_001' => '1.1M',
-#  '1.44*1_024_001' => '1.44M', # TODO
+#  '1.44*1_024_001' => '1.44M', # TODO - Mafoo, only if you did format_bytes( 1.44 * 1_024_001, bs => 1_024_000, precision => 2, precision_cutoff => -1, round_style => 'round' )
   '1_024_000*1_024_000' => '1.0T',
 );
 
@@ -26,4 +26,3 @@ while (my ($exp, $expected) = splice @TESTS, 0, 2) {
   $num = eval $exp;
   is(format_bytes($num, bs => 1_024_000), $expected, "$exp is $expected");
 }
-

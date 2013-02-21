@@ -1,4 +1,4 @@
-
+#!/usr/bin/perl
 use 5.006;
 use ExtUtils::MakeMaker;
 
@@ -20,7 +20,7 @@ WriteMakefile(
         POSIX                    => 0,
         Carp                     => 0,
         Test::More               => 0,
-    }, 
+    },
     ($] >= 5.005 ?
       (ABSTRACT_FROM  => 'Human.pm', # retrieve abstract from module
        AUTHOR         => 'A. R. Ferreira <ferreira@cpan.org>',

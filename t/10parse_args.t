@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 28;
+use Test::More tests => 30;
 
 # script for testing the internal sub &_parse_args()
 
@@ -132,6 +132,17 @@ is_deeply(
 
 is_deeply(
   _parse_args({ SUFFIXES => [ 'X' ]}, { zero => '0%S' }),
-  { ZERO => '0X', SUFFIXES => [ 'X' ] }, 
+  { ZERO => '0X', SUFFIXES => [ 'X' ] },
   "zero => '0%S' works");
 
+## option PRECISION
+
+is_deeply(
+  _parse_args({}, { precision => '2' }),
+  { PRECISION => '2' }, "precision => '2' works");
+
+## option PRECISION_CUTOFF
+
+is_deeply(
+  _parse_args({}, { precision_cutoff => '-1' }),
+  { PRECISION_CUTOFF => '-1' }, "precision_cutoff => '-1' works");

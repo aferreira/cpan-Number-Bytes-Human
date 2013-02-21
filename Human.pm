@@ -1,10 +1,9 @@
-
 package Number::Bytes::Human;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -35,11 +34,10 @@ sub _default_suffixes {
 }
 
 my %ROUND_FUNCTIONS = (
-  ceil => \&POSIX::ceil,
-  floor => \&POSIX::floor,
-  #round => sub { shift }, # FIXME
-  #trunc => sub { int shift } # FIXME
-
+  ceil => sub { return POSIX::ceil($_[0] * (10 ** $_[1])) / 10**$_[1]; },
+  floor => sub { return POSIX::floor($_[0] * (10 ** $_[1])) / 10**$_[1]; },
+  round => sub { return sprintf( "%." . ( $_[1] || 0 ) . "f", $_[0] ); },
+  trunc => sub { return sprintf( "%d", $_[0] * (10 ** $_[1])) / 10**$_[1]; },
   # what about 'ceiling'?
 );
 
@@ -65,7 +63,7 @@ sub _round_function {
 #
 #   zero => '0' (default) | '-' | '0%S' | undef
 #
-#   
+#
 #   supress_point_zero | no_point_zero =>
 #   b_to_i => 1
 #   to_s => \&
@@ -77,7 +75,7 @@ sub _round_function {
 
 
 #  PROBABLY CRAP:
-#   precision =>
+#   precision => integer
 
 # parsed options
 #   BLOCK => 1024 | 1020
@@ -87,7 +85,7 @@ sub _round_function {
 #   ZERO =>
 
 
-=begin private 
+=begin private
 
   $options = _parse_args($seed, $args)
   $options = _parse_args($seed, arg1 => $val1, ...)
@@ -109,8 +107,10 @@ sub _parse_args {
     $options{ROUND_STYLE} = 'ceil';
     $options{ROUND_FUNCTION} = _round_function($options{ROUND_STYLE});
     $options{ZERO} = '0';
+    $options{PRECISION} = 1;
+    $options{PRECISION_CUTOFF} = 1;
     #$options{SUFFIXES} = # deferred to the last minute when we know BLOCK, seek [**]
-  } 
+  }
   # else { %options = %$seed } # this is set if @_!=0, down below
 
   if (@_==0) { # quick return for default values (no customized args)
@@ -122,7 +122,7 @@ sub _parse_args {
   }
 
   # this is done here so this assignment/copy doesn't happen if @_==0
-  %options = %$seed unless %options; 
+  %options = %$seed unless %options;
 
 # block | block_size | base | bs => 1024 | 1000
 # block_1024 | base_1024 | 1024 => $true
@@ -140,7 +140,7 @@ sub _parse_args {
       croak "invalid base: $block (should be 1024, 1000 or 1024000)";
     }
     $options{BLOCK} = $block;
-    
+
   } elsif ($args{block_1024} ||
            $args{base_1024}  ||
            $args{1024}) {
@@ -187,8 +187,18 @@ sub _parse_args {
   if (exists $args{zero}) {
     $options{ZERO} = $args{zero};
     if (defined $options{ZERO}) {
-      $options{ZERO} =~ s/%S/$options{SUFFIXES}->[0]/g 
+      $options{ZERO} =~ s/%S/$options{SUFFIXES}->[0]/g
     }
+  }
+
+# precision => <integer>
+  if (exists $args{precision} and $args{precision} =~ /\A\d+\z/) {
+    $options{PRECISION} = $args{precision};
+  }
+
+# precision_cutoff => <intenger>
+  if (exists $args{precision_cutoff} and ($args{precision_cutoff} =~ /\A\d+\z/ or $args{precision_cutoff} = '-1')) {
+    $options{PRECISION_CUTOFF} = $args{precision_cutoff};
   }
 
 # quiet => 1
@@ -226,36 +236,56 @@ sub _format_bytes {
      $bytes = -$bytes;
      $sign = '-';
   }
-  return $sign . human_round($bytes) . $suffixes[0] if $bytes<$block;
 
-#  return "$sign$bytes" if $bytes<$block;
-
+  my $suffix = $suffixes[0];
   my $x = $bytes;
-  my $suffix;
-  foreach (@suffixes) {
-    $suffix = $_, last if human_round($x) < $block;
+  my $magnitude = 0;
+  if($bytes >= $block)
+  {
+
+  #  return "$sign$bytes" if $bytes<$block;
+    do
+    {
+      $x /= $block;
+      $magnitude++;
+    } while ( human_round($x, $options{PRECISION}) >= $block );
+    if($magnitude >= (0 + @suffixes))
+    {
+      carp "number too large (>= $block**$magnitude)" unless ($options{QUIET});
+    }
+    $suffix = $suffixes[$magnitude];
+  }
+  #$x = human_round( $x, $options{PRECISION} );
+
+  $x = _precision_cutoff($x, $options);
+  #reasses encase the precision_cutoff caused the value to cross the block size
+  if($x >= $block)
+  {
     $x /= $block;
+    $magnitude++;
+    if($magnitude >= (0 + @suffixes))
+    {
+      carp "number too large (>= $block**$magnitude)" unless ($options{QUIET});
+    }
+    $suffix = $suffixes[$magnitude];
+    $x = _precision_cutoff($x, $options);
   }
-  unless (defined $suffix) { # number >= $block*($block**@suffixes) [>= 1E30, that's huge!]
-      unless ($options{QUIET}) {
-        my $pow = @suffixes+1; 
-        carp "number too large (>= $block**$pow)"
-      }
-      $suffix = $suffixes[-1];
-      $x *= $block;
-  }
-  # OPTION: return "Inf"
-
-  my $num;
-  if ($x < 10.0) {
-    $num = sprintf("%.1f", human_round($x*10)/10); 
-  } else {
-    $num = sprintf("%d", human_round($x));
-  }
-
-  "$sign$num$suffix"
+  return $sign . $x . $suffix;
 
 }
+sub _precision_cutoff {
+    my $bytes   = shift;
+    my $options = shift;
+    my %options = %$options;
+    if ( $options{PRECISION_CUTOFF} != -1 and ( length( sprintf( "%d", $bytes ) ) > $options{PRECISION_CUTOFF} ) ) {
+        $bytes = sprintf( "%d", human_round( $bytes, 0 ) );
+    }
+    else {
+        $bytes = sprintf( "%." . $options{PRECISION} . "f", human_round( $bytes, $options{PRECISION} ) );
+    }
+    return $bytes;
+}
+
 
 # convert byte count (file size) to human readable format
 sub format_bytes {
@@ -289,7 +319,7 @@ sub format {
 }
 
 
-# the solution by COG in Filesys::DiskUsage 
+# the solution by COG in Filesys::DiskUsage
 # convert size to human readable format
 #sub _convert {
 #  defined (my $size = shift) || return undef;
@@ -333,8 +363,12 @@ Number::Bytes::Human - Convert byte count to human readable format
   # the OO way
   $human = Number::Bytes::Human->new(bs => 1000, si => 1);
   $size = $human->format(1E7); # '10MB'
+
   $human->set_options(zero => '-');
   $size = $human->format(0); # '-'
+
+  $human = Number::Bytes::Human->new(bs => 1000, round_style => 'round', precision => 2);
+  $size = $human->format(10240000); # '10.24MB'
 
 =head1 DESCRIPTION
 
@@ -401,9 +435,9 @@ of painful programming).
 =head2 OBJECTS
 
 An alternative to the functional style of this module
-is the OO fashion. This is useful for avoiding the 
+is the OO fashion. This is useful for avoiding the
 unnecessary parsing of the arguments over and over
-if you have to format lots of numbers 
+if you have to format lots of numbers
 
 
   for (@sizes) {
@@ -453,7 +487,7 @@ L</"OPTIONS">.
   $h_size = $h->format($size);
 
 Turns a byte count (like 1230) to a readable format like '1.3K'.
-The statements 
+The statements
 
   $h = Number::Bytes::Human->new(@options);
   $h_size = $h->format($size);
@@ -472,7 +506,7 @@ See L</"OPTIONS">.
 
 =head2 OPTIONS
 
-=over 4 
+=over 4
 
 =item BASE
 
@@ -486,9 +520,9 @@ Any other value throws an exception.
 
 =item SUFFIXES
 
-  suffixes => 1000 | 1024 | 1024000 | si_1000 | si_1024 | $arrayref 
+  suffixes => 1000 | 1024 | 1024000 | si_1000 | si_1024 | $arrayref
 
-By default, the used suffixes stand for '', 'K', 'M', ... 
+By default, the used suffixes stand for '', 'K', 'M', ...
 for base 1024 and '', 'k', 'M', ... for base 1000
 (which are indeed the usual metric prefixes with implied unit
 as bytes, 'B'). For the weird 1024000 base, suffixes are
@@ -510,7 +544,7 @@ The string may contain '%S' in which case the suffix for byte is used.
 =item ROUND
 
   round_function => $coderef
-  round_style => 'ceil' | 'floor'
+  round_style => 'ceil' | 'floor' | 'round' | 'trunc'
 
 =item TO_S
 
@@ -520,6 +554,22 @@ The string may contain '%S' in which case the suffix for byte is used.
 
 Suppresses the warnings emitted. Currently, the only case is
 when the number is large than C<$base**(@suffixes+1)>.
+
+=item PRECISION
+
+  precision => <integer>
+
+default = 1
+sets the precicion of digits, only apropreacte for round_style 'round' or if you
+want to accept it in as the second parameter to your custome round_function.
+
+=item PRECISION_CUTOFF
+
+  precision_cutoff => <integer>
+
+default = 1
+when the number of digits exceeds this number causes the precision to be cutoff
+(was default behaviour in 0.07 and below)
 
 =back
 
