@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Number-Bytes-Human
-version:            0.09
+version:            0.10
 abstract:           Convert byte count to human readable format
 author:
     - A. R. Ferreira <ferreira@cpan.org>
