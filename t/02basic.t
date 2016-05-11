@@ -1,6 +1,6 @@
 #!perl -T
 
-use Test::More tests => 50;
+use Test::More tests => 52;
 
 use_ok('Number::Bytes::Human', 'format_bytes', 'parse_bytes');
 
@@ -25,6 +25,7 @@ our @TESTS_EXACT = (
   '1023*1024' => '1023K',
   '1024*1024' => '1.0M',
   '2**30' => '1.0G',
+  '1.5*(2**30)' => '1.5G',
   '2**80' => '1.0Y',
   '1023*2**80' => '1023Y',
   #'1025*2**80' => '1025Y', # TODO

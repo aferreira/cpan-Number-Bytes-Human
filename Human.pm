@@ -336,20 +336,16 @@ sub _parse_bytes {
     }
   }
 
-  my ($sign, $int, $frac, $unit) = ($human =~ /^\s*(-?)\s*(\d*)(?:\.(\d*))?\s*(\D*)$/);
+  my ($sign, $k, $unit) = ($human =~ /^\s*(-?)\s*(\d*(?:\.\d*)?)\s*(\D*)$/);
 
-  $frac ||= 0;
-
-#  print STDERR "S: $sign I: $int F: $frac U: $unit\n";
+#  print STDERR "S: $sign K: $k U: $unit\n";
 
 
   my $mult;
-  my $block;
   my $u = $options{UNIT} || '';
   foreach my $s (keys %suffix_block) {
     if( $unit =~ /^${s}${u}$/i ) {
       $mult = ($sign eq '-' ? -1 : 1) * $suffix_mult{$s};
-      $block = $suffix_block{$s};
       last;
     }
   }
@@ -361,7 +357,7 @@ print STDERR Dumper( %suffix_block );
     return undef;
   }
 
-  my $bytes = int( ($int + ($frac / $block)) * $mult );
+  my $bytes = int( $k * $mult );
 
   return $bytes;
 }

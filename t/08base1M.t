@@ -15,7 +15,7 @@ our @TESTS = (
   '2000' => '2000',
   '1_000_000' => '1000000',
   '1_024_000' => '1.0M',
-  '1_024_001' => '1.1M',
+  '1_126_400' => '1.1M',
 #  '1.44*1_024_001' => '1.44M', # TODO - Mafoo, only if you did format_bytes( 1.44 * 1_024_001, bs => 1_024_000, precision => 2, precision_cutoff => -1, round_style => 'round' )
   '1_024_000*1_024_000' => '1.0T',
 );
@@ -26,5 +26,5 @@ is(parse_bytes(undef), undef, "undef is undef");
 while (my ($exp, $expected) = splice @TESTS, 0, 2) {
   $num = eval $exp;
   is(format_bytes($num, bs => 1_024_000), $expected, "$exp is '$expected'");
-  is(parse_bytes($expected, bs => 1_024_000), $num, "'$expected' is $expected");
+  is(parse_bytes($expected, bs => 1_024_000), $num, "'$expected' is $num");
 }
