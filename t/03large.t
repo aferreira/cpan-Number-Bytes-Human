@@ -3,7 +3,7 @@
 use Test::More;
 
 if (eval 'require bignum') {
-  plan tests => 3;
+  plan tests => 5;
 } else {
   plan skip_all => 'bignum is not available';
 }
@@ -11,7 +11,7 @@ if (eval 'require bignum') {
 # this script tests format_bytes() with large (very large) numbers
 
 
-use_ok('Number::Bytes::Human', 'format_bytes');
+use_ok('Number::Bytes::Human', 'format_bytes', 'parse_bytes');
 
 our @TESTS = (
   '2**80', 2**80, '1.0Y',
@@ -24,4 +24,5 @@ our @TESTS = (
 
 while (my ($exp, $num, $expected) = splice @TESTS, 0, 3) {
   is(format_bytes($num), $expected, "$exp is $expected");
+  is(parse_bytes($expected), $num, "parsing $expected should result in $num");
 }

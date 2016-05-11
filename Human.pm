@@ -3,11 +3,11 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(format_bytes);
+our @EXPORT_OK = qw(format_bytes parse_bytes);
 
 require POSIX;
 use Carp qw(croak carp);
@@ -78,11 +78,12 @@ sub _round_function {
 #   precision => integer
 
 # parsed options
-#   BLOCK => 1024 | 1020
+#   BLOCK => 1024 | 1000
 #   ROUND_STYLE => 'ceil', 'round', 'floor', 'trunc'
 #   ROUND_FUNCTION => \&
 #   SUFFIXES => \@
 #   ZERO =>
+#   SI => undef | 1			Parse SI compatible
 
 
 =begin private
@@ -107,9 +108,11 @@ sub _parse_args {
     $options{ROUND_STYLE} = 'ceil';
     $options{ROUND_FUNCTION} = _round_function($options{ROUND_STYLE});
     $options{ZERO} = '0';
+    $options{SI} = undef;
     $options{PRECISION} = 1;
     $options{PRECISION_CUTOFF} = 1;
     #$options{SUFFIXES} = # deferred to the last minute when we know BLOCK, seek [**]
+    $options{UNIT} = undef;
   }
   # else { %options = %$seed } # this is set if @_!=0, down below
 
@@ -166,6 +169,11 @@ sub _parse_args {
     $options{ROUND_STYLE} = $args{round_style};
   }
 
+# SI compatibility (mostly for parsing)
+  if ($args{si}) {
+    $options{SI} = 1;
+  }
+
 # suffixes => 1024 | 1000 | si_1024 | si_1000 | 1024000 | \@
   if ($args{suffixes}) {
     if (ref $args{suffixes} eq 'ARRAY') {
@@ -175,12 +183,9 @@ sub _parse_args {
     } else {
       croak "suffixes ($args{suffixes}) should be 1024, 1000, si_1024, si_1000, 1024000 or an array ref";
     }
-  } elsif ($args{si}) {
-    my $set = ($options{BLOCK}==1024) ? 'si_1024' : 'si_1000';
-    $options{SUFFIXES} = _default_suffixes($set);
-  } elsif (defined $args{unit}) {
-    my $suff = $args{unit};
-    $options{SUFFIXES} = [ map  { "$_$suff" } @DEFAULT_PREFIXES ];
+  }
+  if (defined $args{unit}) {
+    $options{UNIT} = $args{unit};
   }
 
 # zero => undef | string
@@ -228,7 +233,7 @@ sub _format_bytes {
   my $block = $options{BLOCK};
 
   # if a suffix set was not specified, pick a default [**]
-  my @suffixes = $options{SUFFIXES} ? @{$options{SUFFIXES}} : _default_suffixes($block);
+  my @suffixes = $options{SUFFIXES} ? @{$options{SUFFIXES}} : _default_suffixes( ($options{SI} ? 'si_' : '') . $block);
 
   # WHAT ABOUT NEGATIVE NUMBERS: -1K ?
   my $sign = '';
@@ -240,17 +245,13 @@ sub _format_bytes {
   my $suffix = $suffixes[0];
   my $x = $bytes;
   my $magnitude = 0;
-  if($bytes >= $block)
-  {
-
+  if($bytes >= $block) {
   #  return "$sign$bytes" if $bytes<$block;
-    do
-    {
+    do {
       $x /= $block;
       $magnitude++;
     } while ( human_round($x, $options{PRECISION}) >= $block );
-    if($magnitude >= (0 + @suffixes))
-    {
+    if($magnitude >= (0 + @suffixes)) {
       carp "number too large (>= $block**$magnitude)" unless ($options{QUIET});
     }
     $suffix = $suffixes[$magnitude];
@@ -259,31 +260,110 @@ sub _format_bytes {
 
   $x = _precision_cutoff($x, $options);
   #reasses encase the precision_cutoff caused the value to cross the block size
-  if($x >= $block)
-  {
+  if($x >= $block) {
     $x /= $block;
     $magnitude++;
-    if($magnitude >= (0 + @suffixes))
-    {
+    if($magnitude >= (0 + @suffixes)) {
       carp "number too large (>= $block**$magnitude)" unless ($options{QUIET});
     }
     $suffix = $suffixes[$magnitude];
     $x = _precision_cutoff($x, $options);
   }
-  return $sign . $x . $suffix;
+
+  my $unit = $options{UNIT} || '';
+
+  return $sign . $x . $suffix . $unit;
 
 }
+
 sub _precision_cutoff {
-    my $bytes   = shift;
-    my $options = shift;
-    my %options = %$options;
-    if ( $options{PRECISION_CUTOFF} != -1 and ( length( sprintf( "%d", $bytes ) ) > $options{PRECISION_CUTOFF} ) ) {
-        $bytes = sprintf( "%d", human_round( $bytes, 0 ) );
+ my $bytes   = shift;
+ my $options = shift;
+ my %options = %$options;
+ if ( $options{PRECISION_CUTOFF} != -1 and ( length( sprintf( "%d", $bytes ) ) > $options{PRECISION_CUTOFF} ) ) {
+   $bytes = sprintf( "%d", human_round( $bytes, 0 ) );
+ } else {
+   $bytes = sprintf( "%." . $options{PRECISION} . "f", human_round( $bytes, $options{PRECISION} ) );
+ }
+ return $bytes;
+}
+
+sub _parse_bytes {
+  my $human = shift;
+  my $options = shift;
+  my %options = %$options;
+
+  return 0 if( exists $options{ZERO} && ((!defined $options{ZERO} && !defined $human) || (defined $human && $human eq $options{ZERO})) );
+  return undef unless defined $human;
+
+  my %suffix_mult;
+  my %suffix_block;
+  my $m;
+
+  if( $options{SUFFIXES} ) {
+    $m = 1;
+    foreach my $s (@{$options{SUFFIXES}}) {
+      $suffix_mult{$s} = $m;
+      $suffix_block{$s} = $options{BLOCK};
+      $m *= $suffix_block{$s};
     }
-    else {
-        $bytes = sprintf( "%." . $options{PRECISION} . "f", human_round( $bytes, $options{PRECISION} ) );
+  } else {
+    if( !defined $options{SI} || $options{SI} == 1 ) {
+      # If SI compatibility has been set BLOCK is ignored as it is infered from the unit
+      $m = 1;
+      foreach my $s (@{$DEFAULT_SUFFIXES{si_1000}}) {
+        $suffix_mult{$s} = $m;
+        $suffix_block{$s} = 1000;
+        $m *= $suffix_block{$s};
+      }
+    
+      $m = 1;
+      foreach my $s (@{$DEFAULT_SUFFIXES{si_1024}}) {
+        $suffix_mult{$s} = $m;
+        $suffix_block{$s} = 1024;
+        $m *= $suffix_block{$s};
+      }
     }
-    return $bytes;
+
+    # The regular suffixes are only taken into account in default mode without specifically asking for SI compliance
+    if( !defined $options{SI} ) {
+      $m = 1;
+      foreach my $s (_default_suffixes( $options{BLOCK} )) {
+        $suffix_mult{$s} = $m;
+        $suffix_block{$s} = $options{BLOCK};
+        $m *= $suffix_block{$s};
+      }
+    }
+  }
+
+  my ($sign, $int, $frac, $unit) = ($human =~ /^\s*(-?)\s*(\d*)(?:\.(\d*))?\s*(\D*)$/);
+
+  $frac ||= 0;
+
+#  print STDERR "S: $sign I: $int F: $frac U: $unit\n";
+
+
+  my $mult;
+  my $block;
+  my $u = $options{UNIT} || '';
+  foreach my $s (keys %suffix_block) {
+    if( $unit =~ /^${s}${u}$/i ) {
+      $mult = ($sign eq '-' ? -1 : 1) * $suffix_mult{$s};
+      $block = $suffix_block{$s};
+      last;
+    }
+  }
+
+  if( !defined $mult ) {
+    carp "Could not parse human readable byte value '$human'";
+use Data::Dumper;
+print STDERR Dumper( %suffix_block );
+    return undef;
+  }
+
+  my $bytes = int( ($int + ($frac / $block)) * $mult );
+
+  return $bytes;
 }
 
 
@@ -293,6 +373,14 @@ sub format_bytes {
   my $options = _parse_args(undef, @_);
   #use YAML; print Dump $options;
   return _format_bytes($bytes, $options);
+}
+
+# convert human readable format to byte count (file size)
+sub parse_bytes {
+  my $human = shift;
+  my $options = _parse_args(undef, @_);
+  #use YAML; print Dump $options;
+  return _parse_bytes($human, $options);
 }
 
 ### the OO way
@@ -318,6 +406,12 @@ sub format {
   return _format_bytes($bytes, $self);
 }
 
+# parse()
+sub parse {
+  my $self = shift;
+  my $human = shift;
+  return _parse_bytes($human, $self);
+}
 
 # the solution by COG in Filesys::DiskUsage
 # convert size to human readable format
@@ -353,19 +447,28 @@ Number::Bytes::Human - Convert byte count to human readable format
 
 =head1 SYNOPSIS
 
-  use Number::Bytes::Human qw(format_bytes);
+  use Number::Bytes::Human qw(format_bytes parse_bytes);
   $size = format_bytes(0); # '0'
   $size = format_bytes(2*1024); # '2.0K'
 
   $size = format_bytes(1_234_890, bs => 1000); # '1.3M'
   $size = format_bytes(1E9, bs => 1000); # '1.0G'
 
+  my $bytes = parse_bytes('1.0K');   # 1024
+  my $bytes = parse_bytes('1.0KB');  # 1000, SI unit
+  my $bytes = parse_bytes('1.0KiB'); # 1024, SI unit
+
   # the OO way
   $human = Number::Bytes::Human->new(bs => 1000, si => 1);
   $size = $human->format(1E7); # '10MB'
 
+  $bytes = $human->parse('10MB');   # 10*1000*1000
+  $bytes = $human->parse('10MiB');  # 10*1024*1024
+  $bytes = $human->parse('10M');    # Error, no SI unit
+
   $human->set_options(zero => '-');
-  $size = $human->format(0); # '-'
+  $size = $human->format(0);    # '-'
+  $bytes = $human->parse('-');  # 0
 
   $human = Number::Bytes::Human->new(bs => 1000, round_style => 'round', precision => 2);
   $size = $human->format(10240000); # '10.24MB'
@@ -432,6 +535,13 @@ refactored, abused. And then, when it is much improved, some
 brave soul can port it back to C (if only for the warm feeling
 of painful programming).
 
+It is also possible to parse human readable formatted bytes. The 
+automatic format detection recognizes SI units with the blocksizes
+of 1000 and 1024 respectively and additionally the customary K / M / G etc. with
+blocksize 1024. When si => 1 is added to the options only SI units
+are recognized. Explicitly specifying a blocksize changes it
+for all detected units.
+
 =head2 OBJECTS
 
 An alternative to the functional style of this module
@@ -469,6 +579,12 @@ Turns a byte count (like 1230) to a readable format like '1.3K'.
 You have a bunch of options to play with. See the section
 L</"OPTIONS"> to know the details.
 
+=item B<parse_bytes>
+
+  $size = parse_bytes($h_size, @options);
+
+Turns a human readable byte count into a number of the equivalent bytes.
+
 =back
 
 =head2 METHODS
@@ -493,6 +609,19 @@ The statements
   $h_size = $h->format($size);
 
 are equivalent to C<$h_size = format_bytes($size, @options)>,
+with only one pass for the option arguments.
+
+=item B<parse>
+
+  $size = $h->parse($h_size)
+
+Turns a human readable byte count into the number of bytes.
+The statements
+
+  $h = Number::Bytes::Human->new(@options);
+  $size = $h->format($h_size);
+
+are equivalent to C<$size = parse_bytes($h_size, @options)>,
 with only one pass for the option arguments.
 
 =item B<set_options>
@@ -575,7 +704,7 @@ when the number of digits exceeds this number causes the precision to be cutoff
 
 =head2 EXPORT
 
-It is alright to import C<format_bytes>, but nothing is exported by default.
+It is alright to import C<format_bytes> and C<parse_bytes>, but nothing is exported by default.
 
 =head1 DIAGNOSTICS
 

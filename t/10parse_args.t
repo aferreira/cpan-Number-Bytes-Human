@@ -118,11 +118,11 @@ is_deeply(
 ## OPTION si
 is_deeply(
   _parse_args({}, { si => 1, bs => 1000 }),
-  { BLOCK => 1000, SUFFIXES => [ qw(B kB MB GB TB PB EB ZB YB) ] }, "si => 1, bs => 1000 works");
+  { SI => 1, BLOCK => 1000 }, "si => 1, bs => 1000 works");
 
 is_deeply(
   _parse_args({}, { si => 1, bs => 1024 }),
-  { BLOCK => 1024, SUFFIXES => [ qw(B KiB MiB GiB TiB PiB EiB ZiB YiB) ] }, "si => 1, bs => 1024 works");
+  { SI => 1, BLOCK => 1024 }, "si => 1, bs => 1024 works");
 
 ## option ZERO
 

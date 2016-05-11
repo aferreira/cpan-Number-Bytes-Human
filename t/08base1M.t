@@ -1,8 +1,8 @@
 #!perl -T
 
-use Test::More tests => 14;
+use Test::More tests => 27;
 
-use_ok('Number::Bytes::Human', 'format_bytes');
+use_ok('Number::Bytes::Human', 'format_bytes', 'parse_bytes');
 
 our @TESTS = (
   '0' => '0',
@@ -21,8 +21,10 @@ our @TESTS = (
 );
 
 is(format_bytes(undef), undef, "undef is undef");
+is(parse_bytes(undef), undef, "undef is undef");
 
 while (my ($exp, $expected) = splice @TESTS, 0, 2) {
   $num = eval $exp;
-  is(format_bytes($num, bs => 1_024_000), $expected, "$exp is $expected");
+  is(format_bytes($num, bs => 1_024_000), $expected, "$exp is '$expected'");
+  is(parse_bytes($expected, bs => 1_024_000), $num, "'$expected' is $expected");
 }
