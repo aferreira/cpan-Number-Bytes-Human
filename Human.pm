@@ -714,17 +714,6 @@ It is alright to import C<format_bytes> and C<parse_bytes>, but nothing is expor
 
   "negative numbers are not allowed" (??)
 
-=head1 TO DO
-
-A function C<parse_bytes>
-
-  parse_bytes($str, $options)
-
-which transforms '1k' to 1000, '1K' to 1024, '1MB' to 1E6,
-'1M' to 1024*1024, etc. (like gnu du).
-
-  $str =~ /^\s*(\d*\.?\d*)\s*(\S+)/ # $num $suffix
-
 =head1 SEE ALSO
 
 F<lib/human.c> and F<lib/human.h> in GNU coreutils.
