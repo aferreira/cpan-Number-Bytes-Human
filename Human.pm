@@ -3,7 +3,7 @@ package Number::Bytes::Human;
 use strict;
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -726,11 +726,13 @@ as BestPractical ignore my claims that I cannot log in, but I will answer anyway
 
 =head1 AUTHOR
 
-Adriano R. Ferreira, E<lt>ferreira@cpan.orgE<gt>
+Adriano R. Ferreira, E<lt>ferreiraE<64>cpan.orgE<gt>
+
+Dagobert Michelsen, E<lt>dagobertE<64>cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2007 by Adriano R. Ferreira
+Copyright (C) 2005-2017 by Adriano R. Ferreira
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
