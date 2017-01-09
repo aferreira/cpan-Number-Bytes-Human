@@ -1,5 +1,9 @@
 Revision history for Perl extension Number::Bytes::Human.
 
+0.11 Sun Jan 08 2017
+         -
+         - Makefile.PL modernization
+
 0.10 Wed May 11 2016
          - Fix incorrect handling of fractional units (thanks James Stanley,
            patch taken from #114296 which fixes initial bug report #97324)

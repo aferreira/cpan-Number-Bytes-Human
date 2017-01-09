@@ -3,15 +3,6 @@ use 5.006;
 use ExtUtils::MakeMaker;
 
 my $EUMM_VERSION = eval $ExtUtils::MakeMaker::VERSION;
-my $EXTRA_META = <<YAML;
-
-recommends:
-    Test::Pod:                     1.18
-    #bignum:                        0
-no_index: ~
-installdirs: site
-
-YAML
 
 WriteMakefile(
     NAME              => 'Number::Bytes::Human',
@@ -26,7 +17,29 @@ WriteMakefile(
        AUTHOR         => 'A. R. Ferreira <ferreira@cpan.org>',
     ) : ()),
     ($EUMM_VERSION >= 6.31 ? (
-        LICENSE       => 'perl',
-        EXTRA_META    => $EXTRA_META
+        LICENSE => 'perl',
+    ) :()),
+    ($EUMM_VERSION > 6.4501 ? (
+        META_MERGE => {
+            'meta-spec' => { version => 2 },
+            resources => {
+                repository => {
+                    type => 'git',
+                    url => 'git://github.com/aferreira/cpan-Number-Bytes-Human.git',
+                    web => 'https://github.com/aferreira/cpan-Number-Bytes-Human',
+                }
+            },
+            prereqs => {
+                test => {
+		    requires => {
+                        'Test::More'          => 0,
+                    },
+		    recommends => {
+                        'Test::Pod'           => '1.18',
+                        'Test::Pod::Coverage' => '1.04',
+                    },
+                }
+            },
+        },
     ) : ()),
 );
