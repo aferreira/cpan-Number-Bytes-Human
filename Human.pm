@@ -352,8 +352,6 @@ sub _parse_bytes {
 
   if( !defined $mult ) {
     carp "Could not parse human readable byte value '$human'";
-use Data::Dumper;
-print STDERR Dumper( %suffix_block );
     return undef;
   }
 
