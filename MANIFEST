@@ -18,4 +18,3 @@ t/20oo.t
 t/90pod.t
 t/98pod-coverage.t
 
-META.yml                                 Module meta-data (added by MakeMaker)
