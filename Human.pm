@@ -720,9 +720,7 @@ The C<_convert()> solution by COG in Filesys::DiskUsage.
 
 =head1 BUGS
 
-Please report bugs via CPAN RT L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Number-Bytes-Human>
-or L<mailto://bug-Number-Bytes-Human@rt.cpan.org>. I will not be able to close the bug
-as BestPractical ignore my claims that I cannot log in, but I will answer anyway.
+Please report bugs via Github L<https://github.com/aferreira/cpan-Number-Bytes-Human/issues>.
 
 =head1 AUTHOR
 
